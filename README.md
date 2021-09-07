@@ -1,5 +1,15 @@
 # pybluefors
 
+## Setup
+Install dependencies (pip):
+```
+pip3 install websocket-client
+```
+or (Ubuntu):
+```
+apt install python3-websocket
+```
+
 ## Usage
 Instantiate a client:
 ```
