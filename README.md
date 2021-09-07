@@ -1,4 +1,5 @@
 # pybluefors
+So... you just spent 500k USD on a dilution fridge. It may be gold-plated, but you've just realized that they forgot to include the python bindings. Welcome.
 
 ## Setup
 Install dependencies (pip):
