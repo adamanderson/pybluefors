@@ -19,7 +19,7 @@ class TemperatureController:
         ip_address : str
             IP address of temperature controller device
         '''
-        self.ip_address = ip_address #'192.168.1.204'
+        self.ip_address = ip_address
         self.heaters_info = {}
         self.thermometers_info = {}
 
@@ -36,11 +36,17 @@ class TemperatureController:
         # get info on thermometers
         ws = websocket.create_connection('ws://{}:5002/channel'.format(self.ip_address),
                                          timeout=10)
-        for heater_chan in [1,2,3,4,5,6,7,8]:
-            ws.send(json.dumps({'channel_nr': heater_chan}))
+        for thermometer_chan in [1,2,3,4,5,6,7,8]:
+            ws.send(json.dumps({'channel_nr': thermometer_chan}))
             resp = ws.recv()
             data = json.loads(resp)
-            self.thermometers_info[data['name']] = data
+            if data['name'] not in self.thermometers_info:
+                self.thermometers_info[data['name']] = data
+            else:
+                num_chans = len([channame for channame in self.thermometers_info \
+                                 if data['name'] in channame])
+                new_name = '{}_{}'.format(data['name'], num_chans+1)
+                self.thermometers_info[new_name] = data
         ws.close()
 
     def get_data(self, channel):
@@ -59,7 +65,7 @@ class TemperatureController:
             channel_num = self.thermometers_info[channel]['channel_nr']
         else:
             raise ValueError('Invalid argument type.')
-
+        
         ws = websocket.create_connection('ws://{}:5002/channel/historical-data'.format(self.ip_address),
                                               timeout=10)
         ws.send(json.dumps({'channel_nr': channel_num,
@@ -76,7 +82,7 @@ class TemperatureController:
         ws.close()
         return data
 
-    def set_heater(self, channel, active=None, pid_mode=None, power=None,
+    def set_heater(self, channel, pid_mode=None, power=None,
                    max_power=None, setpoint=None,
                    control_algorithm_settings=None):
         '''
@@ -86,8 +92,6 @@ class TemperatureController:
         ----------
         channel : int or str
             Channel number or name for which to get data
-        active : bool
-            Set whether heater is active
         pid_mode : int
             0 : manual mode
             1 : PID mode
