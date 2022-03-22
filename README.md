@@ -1,4 +1,15 @@
 # pybluefors
+So... you just spent 500k USD on a dilution fridge. It may be gold-plated, but you've just realized that they forgot to include the python bindings. Welcome.
+
+## Setup
+Install dependencies (pip):
+```
+pip3 install websocket-client
+```
+or (Ubuntu):
+```
+apt install python3-websocket
+```
 
 ## Usage
 Instantiate a client:
