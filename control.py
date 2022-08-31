@@ -59,13 +59,13 @@ class TemperatureController:
         channel : int or str
             Channel number or name for which to get data
 
-        start_time : None or datetime
-            Time at which to start reporting temperature data. If None, most recent data 
-            will be returned.
+        start_time : None or float or int
+            Time at which to start reporting temperature data, in seconds since the
+            epoch. If None, most recent data will be returned.
 
-        stop_time : None or datetime
-            Time at which to stop reporting temperature data. If None, data up to most recent
-            will be returned.
+        stop_time : None or float or int
+            Time at which to stop reporting temperature data, in seconds since the
+            epoch. If None, data up to most recent will be returned.
         '''
         # parse arguments
         if type(channel) is int:
@@ -76,26 +76,24 @@ class TemperatureController:
             raise ValueError('Invalid argument type: channel. Must be int or str.')
 
         if start_time is None:
-            start_time = datetime.datetime.now() - datetime.timedelta(minutes=5)
+            start_time = datetime.datetime.timestamp(datetime.datetime.now() - datetime.timedelta(minutes=5))
             return_most_recent = True
-        elif not isinstance(start_time, datetime.datetime):
-            raise ValueError('Invalid argument type: start_time. Must be None or datetime.datetime.')
+        elif not (isinstance(start_time, float) or isinstance(start_time, int)):
+            raise ValueError('Invalid argument type: start_time. Must be None or int or float (seconds since epoch).')
         else:
             return_most_recent = False
             
         if stop_time is None:
-            stop_time = datetime.datetime.now()
-        elif not isintance(stop_time, datetime.datetime):
-            raise ValueError('Invalid argument type: stop_time. Must be None or datetime.datetime.')
+            stop_time = datetime.datetime.timestamp(datetime.datetime.now())
+        elif not (isinstance(stop_time, float) or isinstance(stop_time, int)):
+            raise ValueError('Invalid argument type: stop_time. Must be None or int or float (seconds since epoch).')
 
         
         ws = websocket.create_connection('ws://{}:5002/channel/historical-data'.format(self.ip_address),
                                               timeout=10)
         ws.send(json.dumps({'channel_nr': channel_num,
-                            'start_time': start_time.strftime('%Y-%m-%d %H:%M:%S'),
-                            'stop_time': stop_time.strftime('%Y-%m-%d %H:%M:%S'),
-                            #'start_time': (datetime.datetime.now() - datetime.timedelta(minutes=5)).strftime('%Y-%m-%d %H:%M:%S'),
-                            #'stop_time': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                            'start_time': datetime.datetime.utcfromtimestamp(start_time).strftime('%Y-%m-%d %H:%M:%S'),
+                            'stop_time': datetime.datetime.utcfromtimestamp(stop_time).strftime('%Y-%m-%d %H:%M:%S'),
                             'fields': ['timestamp', 'resistance', 'temperature']}))
         resp = ws.recv()
         data = json.loads(resp)
