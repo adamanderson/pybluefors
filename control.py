@@ -49,14 +49,23 @@ class TemperatureController:
                 self.thermometers_info[new_name] = data
         ws.close()
 
-    def get_data(self, channel):
+    def get_data(self, channel, start_time=None, stop_time=None):
         '''
-        Get most recent data from the temperature controller.
+        Get data from the temperature controller. If no start and stop times are specified, 
+        the function fetches only the most recent available temperature data.
 
         Parameters
         ----------
         channel : int or str
             Channel number or name for which to get data
+
+        start_time : None or datetime
+            Time at which to start reporting temperature data. If None, most recent data 
+            will be returned.
+
+        stop_time : None or datetime
+            Time at which to stop reporting temperature data. If None, data up to most recent
+            will be returned.
         '''
         # parse arguments
         if type(channel) is int:
@@ -64,20 +73,37 @@ class TemperatureController:
         elif type(channel) is str:
             channel_num = self.thermometers_info[channel]['channel_nr']
         else:
-            raise ValueError('Invalid argument type.')
+            raise ValueError('Invalid argument type: channel. Must be int or str.')
+
+        if start_time is None:
+            start_time = datetime.datetime.now() - datetime.timedelta(minutes=5)
+            return_most_recent = True
+        elif not isinstance(start_time, datetime.datetime):
+            raise ValueError('Invalid argument type: start_time. Must be None or datetime.datetime.')
+        else:
+            return_most_recent = False
+            
+        if stop_time is None:
+            stop_time = datetime.datetime.now()
+        elif not isintance(stop_time, datetime.datetime):
+            raise ValueError('Invalid argument type: stop_time. Must be None or datetime.datetime.')
+
         
         ws = websocket.create_connection('ws://{}:5002/channel/historical-data'.format(self.ip_address),
                                               timeout=10)
         ws.send(json.dumps({'channel_nr': channel_num,
-                            'start_time': (datetime.datetime.now() - datetime.timedelta(minutes=5)).strftime('%Y-%m-%d %H:%M:%S'),
-                            'stop_time': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                            'start_time': start_time.strftime('%Y-%m-%d %H:%M:%S'),
+                            'stop_time': stop_time.strftime('%Y-%m-%d %H:%M:%S'),
+                            #'start_time': (datetime.datetime.now() - datetime.timedelta(minutes=5)).strftime('%Y-%m-%d %H:%M:%S'),
+                            #'stop_time': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
                             'fields': ['timestamp', 'resistance', 'temperature']}))
         resp = ws.recv()
         data = json.loads(resp)
 
-        # throw out data from all but the most recent measurement
-        for field in ['timestamp', 'resistance', 'temperature']:
-            data['measurements'][field] = data['measurements'][field][-1]
+        if return_most_recent:
+            # throw out data from all but the most recent measurement
+            for field in ['timestamp', 'resistance', 'temperature']:
+                data['measurements'][field] = data['measurements'][field][-1]
 
         ws.close()
         return data
